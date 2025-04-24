@@ -54,11 +54,11 @@ export function BudgetForm({ onSubmit }: BudgetFormProps) {
                 Transfer Budget (€)
               </Label>
               <div className="relative">
-                <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-300" size={18} />
+                <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-300" size={20} />
                 <Input
                   id="budget"
                   type="number"
-                  placeholder="100000000"
+                  placeholder="200000000"
                   value={budget}
                   onChange={(e) => setBudget(e.target.value)}
                   className="pl-10 bg-blue-800/50 border-blue-700/50 text-white"
@@ -68,17 +68,17 @@ export function BudgetForm({ onSubmit }: BudgetFormProps) {
             </div>
 
             <div className="space-y-2">
-              <div className="flex justify-between text-xs text-blue-300">
-                <span>€10M</span>
-                <span>€100M</span>
+              <div className="flex justify-between text-sm text-blue-300">
                 <span>€200M</span>
-                <span>€300M</span>
+                <span>€400M</span>
+                <span>€600M</span>
+                <span>€800M</span>
               </div>
               <Slider
-                defaultValue={[100000000]}
-                min={10000000}
-                max={300000000}
-                step={5000000}
+                defaultValue={[200000000]}
+                min={200000000}
+                max={800000000}
+                step={10000000}
                 value={[Number(budget)]}
                 onValueChange={handleSliderChange}
                 className="py-4"

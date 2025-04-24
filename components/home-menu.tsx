@@ -4,53 +4,12 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { ChevronRight, Trophy, Users, Dumbbell, Settings } from "lucide-react"
-
-const menuItems = [
-  {
-    id: "auction",
-    title: "MANAGER AUCTION",
-    subtitle: "ASSISTANT",
-    description: "Build your dream team with smart budget allocation",
-    icon: Users,
-    path: "/auction-assistant",
-    color: "from-blue-600 to-blue-800",
-    image: "/images/auction-card.jpg",
-  },
-  {
-    id: "tournaments",
-    title: "TOURNAMENTS",
-    subtitle: "",
-    description: "Compete in various tournaments and leagues",
-    icon: Trophy,
-    path: "/tournaments",
-    color: "from-amber-500 to-amber-700",
-    image: "/images/tournaments-card.jpg",
-  },
-  {
-    id: "skill-games",
-    title: "SKILL GAMES",
-    subtitle: "",
-    description: "Test your football knowledge and skills",
-    icon: Dumbbell,
-    path: "/skill-games",
-    color: "from-emerald-600 to-emerald-800",
-    image: "/images/skill-games-card.jpg",
-  },
-  {
-    id: "management",
-    title: "PLAYER",
-    subtitle: "MANAGEMENT",
-    description: "Add, edit and manage your player database",
-    icon: Settings,
-    path: "/player-management",
-    color: "from-purple-600 to-purple-800",
-    image: "/images/management-card.jpg",
-  },
-]
+import { ChevronRight, Users, Search, Star } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function HomeMenu() {
   const [mounted, setMounted] = useState(false)
+  const [activeSlide, setActiveSlide] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -58,19 +17,165 @@ export function HomeMenu() {
 
   if (!mounted) return null
 
-  return (
-    <div className="py-12">
-      <motion.h1
-        className="text-5xl font-bold text-center mb-16 text-white drop-shadow-glow"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        FOOTBALL MANAGER
-      </motion.h1>
+  const featuredItems = [
+    {
+      id: "auction",
+      title: "AUCTION ASSISTANT",
+      subtitle: "Find the best player combinations for your budget",
+      icon: Users,
+      path: "/auction-assistant",
+      color: "from-blue-600 to-blue-800",
+      image: "/images/back2.png",
+      size: "large",
+    },
+    {
+      id: "gallery",
+      title: "PLAYER GALLERY",
+      subtitle: "Browse and filter all players in the database",
+      icon: Search,
+      path: "/player-gallery",
+      color: "from-emerald-600 to-emerald-800",
+      image: "/images/back2.png",
+      size: "large",
+    },
+    {
+      id: "career",
+      title: "CONTINUE CAREER",
+      subtitle: "1ST",
+      icon: Star,
+      path: "/player-management",
+      color: "from-purple-600 to-purple-800",
+      image: "/images/back2.png",
+      size: "large",
+      badge: {
+        image: "/images/barcelona.png",
+        text: "Next Match: GETAFE (H)",
+        logo: "/images/back2.png",
+      },
+    },
+  ]
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {menuItems.map((item, index) => (
+  const secondaryItems = [
+    {
+      id: "kickoff",
+      title: "KICK OFF",
+      subtitle: "Play a quick match with your favorite teams",
+      path: "/tournaments",
+      image: "/images/back2.png",
+      badge: {
+        teams: [
+          { name: "BARCELONA", logo: "/images/back2.png" },
+          { name: "R. MADRID", logo: "/images/back2.png" },
+        ],
+      },
+    },
+    {
+      id: "tournaments",
+      title: "TOURNAMENTS",
+      subtitle: "Explore and manage football tournaments",
+      path: "/tournaments",
+      image: "/images/back2.png",
+    },
+    {
+      id: "skill-games",
+      title: "SKILL GAMES",
+      subtitle: "Test your football knowledge with fun games",
+      path: "/skill-games",
+      image: "/images/back2.png",
+    },
+  ]
+
+  const indicators = Array(featuredItems.length).fill(0)
+
+  return (
+    <div className="py-6">
+      {/* Featured Carousel */}
+      <div className="relative mb-8">
+        <div className="flex overflow-hidden">
+          {featuredItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              className={cn(
+                "flex-shrink-0 w-full transition-all duration-500 ease-in-out",
+                activeSlide === index ? "block" : "hidden",
+              )}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Link href={item.path}>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[280px]">
+                  <div className="md:col-span-2 relative overflow-hidden rounded-lg h-full">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent z-10" />
+                    <Image src={item.image || "/back2.png"} alt={item.title} fill className="object-cover" />
+                    <div className="absolute bottom-0 left-0 right-0 p-6 z-20">
+                      <h2 className="text-4xl font-bold text-white mb-2">{item.title}</h2>
+                      <p className="text-xl text-blue-100">{item.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="relative overflow-hidden rounded-lg h-full bg-blue-900/30 backdrop-blur-sm border border-blue-800/50">
+                    {item.badge && (
+                      <div className="flex flex-col items-center justify-center h-full p-4">
+                        <div className="w-32 h-32 relative mb-4">
+                          <Image
+                            src={item.badge.image || "/back2.png"}
+                            alt="Team Logo"
+                            width={128}
+                            height={128}
+                            className="object-contain"
+                          />
+                        </div>
+                        <p className="text-white text-center mb-2">{item.badge.text}</p>
+                        {item.badge.logo && (
+                          <div className="w-12 h-12 relative">
+                            <Image
+                              src={item.badge.logo || "/placeholder.svg"}
+                              alt="Opponent Logo"
+                              width={48}
+                              height={48}
+                              className="object-contain"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Carousel Controls */}
+        <div className="absolute bottom-4 right-4 flex items-center gap-2 z-30">
+          <button
+            onClick={() => setActiveSlide((prev) => (prev === 0 ? featuredItems.length - 1 : prev - 1))}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30"
+          >
+            <ChevronRight className="w-5 h-5 transform rotate-180" />
+          </button>
+          <div className="flex gap-2">
+            {indicators.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveSlide(i)}
+                className={`w-3 h-3 rounded-full ${activeSlide === i ? "bg-blue-500" : "bg-white/30"}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setActiveSlide((prev) => (prev === featuredItems.length - 1 ? 0 : prev + 1))}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Secondary Menu Items */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {secondaryItems.map((item, index) => (
           <motion.div
             key={item.id}
             initial={{ opacity: 0, y: 20 }}
@@ -78,37 +183,61 @@ export function HomeMenu() {
             transition={{ duration: 0.5, delay: 0.1 * index }}
           >
             <Link href={item.path}>
-              <div className="relative overflow-hidden rounded-lg group h-64 border border-white/10 shadow-xl">
-                <div className="absolute inset-0 bg-gradient-to-r opacity-90 group-hover:opacity-100 transition-opacity duration-300 z-10 bg-opacity-80 backdrop-blur-sm"></div>
-                <div className="absolute inset-0 z-0">
-                  <Image
-                    src={item.image || "/placeholder.svg"}
-                    alt={item.title}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r opacity-80 group-hover:opacity-90 transition-opacity duration-300 z-10"></div>
-                <div className="relative z-20 h-full flex flex-col justify-between p-6">
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <item.icon className="w-6 h-6 text-white mr-2" />
-                      <h2 className="text-2xl font-bold text-white">{item.title}</h2>
+              <div className="relative overflow-hidden rounded-lg h-[180px] border border-blue-800/30 group">
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 via-blue-900/50 to-transparent z-10" />
+                <Image
+                  src={item.image || "/placeholder.svg"}
+                  alt={item.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 z-20 p-4 flex flex-col justify-between">
+                  <h3 className="text-2xl font-bold text-white">{item.title}</h3>
+
+                  {item.badge?.teams ? (
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center">
+                        <div className="w-12 h-12 relative">
+                          <Image
+                            src={item.badge.teams[0].logo || "/placeholder.svg"}
+                            alt={item.badge.teams[0].name}
+                            width={48}
+                            height={48}
+                            className="object-contain"
+                          />
+                        </div>
+                        <span className="text-white ml-2">{item.badge.teams[0].name}</span>
+                      </div>
+
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 text-white">
+                        V
+                      </div>
+
+                      <div className="flex items-center">
+                        <span className="text-white mr-2">{item.badge.teams[1].name}</span>
+                        <div className="w-12 h-12 relative">
+                          <Image
+                            src={item.badge.teams[1].logo || "/placeholder.svg"}
+                            alt={item.badge.teams[1].name}
+                            width={48}
+                            height={48}
+                            className="object-contain"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    {item.subtitle && <h3 className="text-xl font-bold text-white mb-2">{item.subtitle}</h3>}
-                    <p className="text-white/80">{item.description}</p>
-                  </div>
-                  <div className="flex justify-end">
-                    <div className="bg-white/20 backdrop-blur-sm rounded-full p-2 group-hover:bg-white/30 transition-colors duration-300">
-                      <ChevronRight className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-blue-100">{item.subtitle}</p>
+                  )}
                 </div>
               </div>
             </Link>
           </motion.div>
         ))}
       </div>
+
+      {/* New Feature Badge */}
+      <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold">NEW</div>
     </div>
   )
 }

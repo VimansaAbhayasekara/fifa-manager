@@ -16,7 +16,7 @@ export function StadiumBackground() {
         className={`absolute inset-0 bg-gradient-to-b from-blue-600 to-blue-900 transition-opacity duration-1000 ${loaded ? "opacity-0" : "opacity-100"}`}
       />
       <Image
-        src="/images/stadium-background.jpg"
+        src="/images/back1.jpg"
         alt="Stadium Background"
         fill
         priority

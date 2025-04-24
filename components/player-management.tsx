@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,21 +17,69 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
+import { toast } from "@/components/ui/use-toast"
 import type { Player } from "@/types/player"
-import { Plus, Pencil, Trash2, Search } from "lucide-react"
+import type { Position } from "@/types/position"
+import type { Club } from "@/types/club"
+import type { Country } from "@/types/country"
+import { Plus, Pencil, Trash2, Search, RefreshCw } from "lucide-react"
+
+interface PlayerFormData {
+  name: string
+  age: number
+  position_id: number
+  club_id: number
+  country_id: number
+  market_value: number
+  image_url: string
+  pace: number
+  dribbling: number
+  shooting: number
+  defending: number
+  passing: number
+  physical: number
+  overall_rating: number
+}
 
 export function PlayerManagement() {
   const [players, setPlayers] = useState<Player[]>([])
+  const [positions, setPositions] = useState<Position[]>([])
+  const [clubs, setClubs] = useState<Club[]>([])
+  const [countries, setCountries] = useState<Country[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [playerToEdit, setPlayerToEdit] = useState<Player | null>(null)
+  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null)
+  const [formData, setFormData] = useState<PlayerFormData>({
+    name: "",
+    age: 20,
+    position_id: 0,
+    club_id: 0,
+    country_id: 0,
+    market_value: 1000000,
+    image_url: "",
+    pace: 70,
+    dribbling: 70,
+    shooting: 70,
+    defending: 70,
+    passing: 70,
+    physical: 70,
+    overall_rating: 70,
+  })
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof PlayerFormData, string>>>({})
 
   useEffect(() => {
     fetchPlayers()
+    fetchPositions()
+    fetchClubs()
+    fetchCountries()
   }, [])
 
   async function fetchPlayers() {
@@ -51,9 +101,241 @@ export function PlayerManagement() {
       setPlayers(data || [])
     } catch (error) {
       console.error("Error fetching players:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch players. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
+  }
+
+  async function fetchPositions() {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("positions").select("*").order("id")
+
+      if (error) throw error
+
+      setPositions(data || [])
+    } catch (error) {
+      console.error("Error fetching positions:", error)
+    }
+  }
+
+  async function fetchClubs() {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("clubs").select("*").order("name")
+
+      if (error) throw error
+
+      setClubs(data || [])
+    } catch (error) {
+      console.error("Error fetching clubs:", error)
+    }
+  }
+
+  async function fetchCountries() {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("countries").select("*").order("name")
+
+      if (error) throw error
+
+      setCountries(data || [])
+    } catch (error) {
+      console.error("Error fetching countries:", error)
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target
+    setFormData({
+      ...formData,
+      [id]:
+        id === "age" ||
+        id === "pace" ||
+        id === "dribbling" ||
+        id === "shooting" ||
+        id === "defending" ||
+        id === "passing" ||
+        id === "physical" ||
+        id === "overall_rating" ||
+        id === "market_value"
+          ? Number(value)
+          : value,
+    })
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: Number(value),
+    })
+  }
+
+  const validateForm = () => {
+    const errors: Partial<Record<keyof PlayerFormData, string>> = {}
+
+    if (!formData.name.trim()) errors.name = "Name is required"
+    if (!formData.position_id) errors.position_id = "Position is required"
+    if (!formData.club_id) errors.club_id = "Club is required"
+    if (!formData.country_id) errors.country_id = "Country is required"
+    if (formData.age < 15 || formData.age > 45) errors.age = "Age must be between 15 and 45"
+    if (formData.market_value <= 0) errors.market_value = "Market value must be greater than 0"
+
+    const statFields = ["pace", "dribbling", "shooting", "defending", "passing", "physical", "overall_rating"]
+    statFields.forEach((field) => {
+      const value = formData[field as keyof PlayerFormData] as number
+      if (value < 1 || value > 99) errors[field as keyof PlayerFormData] = "Value must be between 1 and 99"
+    })
+
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleAddPlayer = async () => {
+    if (!validateForm()) return
+
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("players")
+        .insert([formData])
+        .select(`
+          *,
+          position:positions(*),
+          club:clubs(*),
+          country:countries(*)
+        `)
+        .single()
+
+      if (error) throw error
+
+      setPlayers([...players, data])
+      setIsAddDialogOpen(false)
+      resetForm()
+      toast({
+        title: "Success",
+        description: "Player added successfully",
+      })
+    } catch (error) {
+      console.error("Error adding player:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add player. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditPlayer = (player: Player) => {
+    setPlayerToEdit(player)
+    setFormData({
+      name: player.name,
+      age: player.age,
+      position_id: player.position_id,
+      club_id: player.club_id,
+      country_id: player.country_id,
+      market_value: player.market_value,
+      image_url: player.image_url || "",
+      pace: player.pace,
+      dribbling: player.dribbling,
+      shooting: player.shooting,
+      defending: player.defending,
+      passing: player.passing,
+      physical: player.physical,
+      overall_rating: player.overall_rating,
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleUpdatePlayer = async () => {
+    if (!playerToEdit || !validateForm()) return
+
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from("players")
+        .update(formData)
+        .eq("id", playerToEdit.id)
+        .select(`
+          *,
+          position:positions(*),
+          club:clubs(*),
+          country:countries(*)
+        `)
+        .single()
+
+      if (error) throw error
+
+      setPlayers(players.map((p) => (p.id === playerToEdit.id ? data : p)))
+      setIsEditDialogOpen(false)
+      resetForm()
+      toast({
+        title: "Success",
+        description: "Player updated successfully",
+      })
+    } catch (error) {
+      console.error("Error updating player:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update player. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeletePlayer = (player: Player) => {
+    setPlayerToDelete(player)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const confirmDeletePlayer = async () => {
+    if (!playerToDelete) return
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.from("players").delete().eq("id", playerToDelete.id)
+
+      if (error) throw error
+
+      setPlayers(players.filter((p) => p.id !== playerToDelete.id))
+      setIsDeleteDialogOpen(false)
+      toast({
+        title: "Success",
+        description: "Player deleted successfully",
+      })
+    } catch (error) {
+      console.error("Error deleting player:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete player. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      age: 20,
+      position_id: 0,
+      club_id: 0,
+      country_id: 0,
+      market_value: 1000000,
+      image_url: "",
+      pace: 70,
+      dribbling: 70,
+      shooting: 70,
+      defending: 70,
+      passing: 70,
+      physical: 70,
+      overall_rating: 70,
+    })
+    setFormErrors({})
   }
 
   const filteredPlayers = players.filter((player) => {
@@ -100,132 +382,24 @@ export function PlayerManagement() {
                   className="pl-10 bg-blue-800/50 border-blue-700/50 text-white"
                 />
               </div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New Player
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-blue-900 border-blue-800 text-white">
-                  <DialogHeader>
-                    <DialogTitle>Add New Player</DialogTitle>
-                    <DialogDescription>Fill in the details to add a new player to the database.</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Player Name</Label>
-                        <Input id="name" className="bg-blue-800 border-blue-700" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="age">Age</Label>
-                        <Input id="age" type="number" className="bg-blue-800 border-blue-700" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="position">Position</Label>
-                        <Select>
-                          <SelectTrigger className="bg-blue-800 border-blue-700">
-                            <SelectValue placeholder="Select position" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-blue-900 border-blue-800">
-                            <SelectItem value="1">Goalkeeper (GK)</SelectItem>
-                            <SelectItem value="2">Right Back (RB)</SelectItem>
-                            <SelectItem value="3">Center Back (CB)</SelectItem>
-                            {/* More positions */}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="club">Club</Label>
-                        <Select>
-                          <SelectTrigger className="bg-blue-800 border-blue-700">
-                            <SelectValue placeholder="Select club" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-blue-900 border-blue-800">
-                            <SelectItem value="1">Barcelona</SelectItem>
-                            <SelectItem value="2">Real Madrid</SelectItem>
-                            <SelectItem value="3">Manchester City</SelectItem>
-                            {/* More clubs */}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="country">Country</Label>
-                        <Select>
-                          <SelectTrigger className="bg-blue-800 border-blue-700">
-                            <SelectValue placeholder="Select country" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-blue-900 border-blue-800">
-                            <SelectItem value="1">Argentina</SelectItem>
-                            <SelectItem value="2">Portugal</SelectItem>
-                            <SelectItem value="3">Brazil</SelectItem>
-                            {/* More countries */}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="value">Market Value (€)</Label>
-                        <Input id="value" type="number" className="bg-blue-800 border-blue-700" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="image_url">Image URL</Label>
-                      <Input id="image_url" className="bg-blue-800 border-blue-700" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="pace">Pace</Label>
-                        <Input id="pace" type="number" min="1" max="99" className="bg-blue-800 border-blue-700" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dribbling">Dribbling</Label>
-                        <Input id="dribbling" type="number" min="1" max="99" className="bg-blue-800 border-blue-700" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="shooting">Shooting</Label>
-                        <Input id="shooting" type="number" min="1" max="99" className="bg-blue-800 border-blue-700" />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="defending">Defending</Label>
-                        <Input id="defending" type="number" min="1" max="99" className="bg-blue-800 border-blue-700" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="passing">Passing</Label>
-                        <Input id="passing" type="number" min="1" max="99" className="bg-blue-800 border-blue-700" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="physical">Physical</Label>
-                        <Input id="physical" type="number" min="1" max="99" className="bg-blue-800 border-blue-700" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="overall_rating">Overall Rating</Label>
-                      <Input
-                        id="overall_rating"
-                        type="number"
-                        min="1"
-                        max="99"
-                        className="bg-blue-800 border-blue-700"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      type="submit"
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
-                    >
-                      Add Player
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button
+                onClick={() => {
+                  resetForm()
+                  setIsAddDialogOpen(true)
+                }}
+                className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Player
+              </Button>
+              <Button
+                onClick={fetchPlayers}
+                variant="outline"
+                className="bg-blue-800/50 border-blue-700/50 text-white hover:bg-blue-700"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
             </div>
 
             <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
@@ -318,6 +492,7 @@ export function PlayerManagement() {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                onClick={() => handleEditPlayer(player)}
                                 className="h-8 w-8 bg-blue-800/50 border-blue-700 text-blue-300 hover:text-white hover:bg-blue-700"
                               >
                                 <Pencil className="h-4 w-4" />
@@ -326,6 +501,7 @@ export function PlayerManagement() {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                onClick={() => handleDeletePlayer(player)}
                                 className="h-8 w-8 bg-red-900/30 border-red-800/50 text-red-300 hover:text-white hover:bg-red-800"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -343,6 +519,496 @@ export function PlayerManagement() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Add Player Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="bg-blue-900 border-blue-800 text-white max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add New Player</DialogTitle>
+            <DialogDescription>Fill in the details to add a new player to the database.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Player Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.name ? "border-red-500" : ""}`}
+                />
+                {formErrors.name && <p className="text-red-500 text-xs">{formErrors.name}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.age ? "border-red-500" : ""}`}
+                />
+                {formErrors.age && <p className="text-red-500 text-xs">{formErrors.age}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Select
+                  value={formData.position_id ? formData.position_id.toString() : ""}
+                  onValueChange={(value) => handleSelectChange("position_id", value)}
+                >
+                  <SelectTrigger
+                    className={`bg-blue-800 border-blue-700 ${formErrors.position_id ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blue-900 border-blue-800">
+                    {positions.map((position) => (
+                      <SelectItem key={position.id} value={position.id.toString()}>
+                        {position.code} - {position.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.position_id && <p className="text-red-500 text-xs">{formErrors.position_id}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="club">Club</Label>
+                <Select
+                  value={formData.club_id ? formData.club_id.toString() : ""}
+                  onValueChange={(value) => handleSelectChange("club_id", value)}
+                >
+                  <SelectTrigger
+                    className={`bg-blue-800 border-blue-700 ${formErrors.club_id ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select club" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blue-900 border-blue-800 max-h-[200px]">
+                    {clubs.map((club) => (
+                      <SelectItem key={club.id} value={club.id.toString()}>
+                        {club.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.club_id && <p className="text-red-500 text-xs">{formErrors.club_id}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Select
+                  value={formData.country_id ? formData.country_id.toString() : ""}
+                  onValueChange={(value) => handleSelectChange("country_id", value)}
+                >
+                  <SelectTrigger
+                    className={`bg-blue-800 border-blue-700 ${formErrors.country_id ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blue-900 border-blue-800 max-h-[200px]">
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id.toString()}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.country_id && <p className="text-red-500 text-xs">{formErrors.country_id}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="market_value">Market Value (€)</Label>
+                <Input
+                  id="market_value"
+                  type="number"
+                  value={formData.market_value}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.market_value ? "border-red-500" : ""}`}
+                />
+                {formErrors.market_value && <p className="text-red-500 text-xs">{formErrors.market_value}</p>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="image_url">Image URL</Label>
+              <Input
+                id="image_url"
+                value={formData.image_url}
+                onChange={handleInputChange}
+                className="bg-blue-800 border-blue-700"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pace">Pace</Label>
+                <Input
+                  id="pace"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.pace}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.pace ? "border-red-500" : ""}`}
+                />
+                {formErrors.pace && <p className="text-red-500 text-xs">{formErrors.pace}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dribbling">Dribbling</Label>
+                <Input
+                  id="dribbling"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.dribbling}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.dribbling ? "border-red-500" : ""}`}
+                />
+                {formErrors.dribbling && <p className="text-red-500 text-xs">{formErrors.dribbling}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shooting">Shooting</Label>
+                <Input
+                  id="shooting"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.shooting}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.shooting ? "border-red-500" : ""}`}
+                />
+                {formErrors.shooting && <p className="text-red-500 text-xs">{formErrors.shooting}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="defending">Defending</Label>
+                <Input
+                  id="defending"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.defending}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.defending ? "border-red-500" : ""}`}
+                />
+                {formErrors.defending && <p className="text-red-500 text-xs">{formErrors.defending}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="passing">Passing</Label>
+                <Input
+                  id="passing"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.passing}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.passing ? "border-red-500" : ""}`}
+                />
+                {formErrors.passing && <p className="text-red-500 text-xs">{formErrors.passing}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="physical">Physical</Label>
+                <Input
+                  id="physical"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.physical}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.physical ? "border-red-500" : ""}`}
+                />
+                {formErrors.physical && <p className="text-red-500 text-xs">{formErrors.physical}</p>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="overall_rating">Overall Rating</Label>
+              <Input
+                id="overall_rating"
+                type="number"
+                min="1"
+                max="99"
+                value={formData.overall_rating}
+                onChange={handleInputChange}
+                className={`bg-blue-800 border-blue-700 ${formErrors.overall_rating ? "border-red-500" : ""}`}
+              />
+              {formErrors.overall_rating && <p className="text-red-500 text-xs">{formErrors.overall_rating}</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddDialogOpen(false)}
+              className="bg-blue-800/50 border-blue-700 text-white hover:bg-blue-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              onClick={handleAddPlayer}
+              className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
+            >
+              Add Player
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Player Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="bg-blue-900 border-blue-800 text-white max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Edit Player: {playerToEdit?.name}</DialogTitle>
+            <DialogDescription>Update player information</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Player Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.name ? "border-red-500" : ""}`}
+                />
+                {formErrors.name && <p className="text-red-500 text-xs">{formErrors.name}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.age ? "border-red-500" : ""}`}
+                />
+                {formErrors.age && <p className="text-red-500 text-xs">{formErrors.age}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="position">Position</Label>
+                <Select
+                  value={formData.position_id ? formData.position_id.toString() : ""}
+                  onValueChange={(value) => handleSelectChange("position_id", value)}
+                >
+                  <SelectTrigger
+                    className={`bg-blue-800 border-blue-700 ${formErrors.position_id ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blue-900 border-blue-800">
+                    {positions.map((position) => (
+                      <SelectItem key={position.id} value={position.id.toString()}>
+                        {position.code} - {position.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.position_id && <p className="text-red-500 text-xs">{formErrors.position_id}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="club">Club</Label>
+                <Select
+                  value={formData.club_id ? formData.club_id.toString() : ""}
+                  onValueChange={(value) => handleSelectChange("club_id", value)}
+                >
+                  <SelectTrigger
+                    className={`bg-blue-800 border-blue-700 ${formErrors.club_id ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select club" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blue-900 border-blue-800 max-h-[200px]">
+                    {clubs.map((club) => (
+                      <SelectItem key={club.id} value={club.id.toString()}>
+                        {club.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.club_id && <p className="text-red-500 text-xs">{formErrors.club_id}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Select
+                  value={formData.country_id ? formData.country_id.toString() : ""}
+                  onValueChange={(value) => handleSelectChange("country_id", value)}
+                >
+                  <SelectTrigger
+                    className={`bg-blue-800 border-blue-700 ${formErrors.country_id ? "border-red-500" : ""}`}
+                  >
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blue-900 border-blue-800 max-h-[200px]">
+                    {countries.map((country) => (
+                      <SelectItem key={country.id} value={country.id.toString()}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formErrors.country_id && <p className="text-red-500 text-xs">{formErrors.country_id}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="market_value">Market Value (€)</Label>
+                <Input
+                  id="market_value"
+                  type="number"
+                  value={formData.market_value}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.market_value ? "border-red-500" : ""}`}
+                />
+                {formErrors.market_value && <p className="text-red-500 text-xs">{formErrors.market_value}</p>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="image_url">Image URL</Label>
+              <Input
+                id="image_url"
+                value={formData.image_url}
+                onChange={handleInputChange}
+                className="bg-blue-800 border-blue-700"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pace">Pace</Label>
+                <Input
+                  id="pace"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.pace}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.pace ? "border-red-500" : ""}`}
+                />
+                {formErrors.pace && <p className="text-red-500 text-xs">{formErrors.pace}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dribbling">Dribbling</Label>
+                <Input
+                  id="dribbling"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.dribbling}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.dribbling ? "border-red-500" : ""}`}
+                />
+                {formErrors.dribbling && <p className="text-red-500 text-xs">{formErrors.dribbling}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="shooting">Shooting</Label>
+                <Input
+                  id="shooting"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.shooting}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.shooting ? "border-red-500" : ""}`}
+                />
+                {formErrors.shooting && <p className="text-red-500 text-xs">{formErrors.shooting}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="defending">Defending</Label>
+                <Input
+                  id="defending"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.defending}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.defending ? "border-red-500" : ""}`}
+                />
+                {formErrors.defending && <p className="text-red-500 text-xs">{formErrors.defending}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="passing">Passing</Label>
+                <Input
+                  id="passing"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.passing}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.passing ? "border-red-500" : ""}`}
+                />
+                {formErrors.passing && <p className="text-red-500 text-xs">{formErrors.passing}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="physical">Physical</Label>
+                <Input
+                  id="physical"
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={formData.physical}
+                  onChange={handleInputChange}
+                  className={`bg-blue-800 border-blue-700 ${formErrors.physical ? "border-red-500" : ""}`}
+                />
+                {formErrors.physical && <p className="text-red-500 text-xs">{formErrors.physical}</p>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="overall_rating">Overall Rating</Label>
+              <Input
+                id="overall_rating"
+                type="number"
+                min="1"
+                max="99"
+                value={formData.overall_rating}
+                onChange={handleInputChange}
+                className={`bg-blue-800 border-blue-700 ${formErrors.overall_rating ? "border-red-500" : ""}`}
+              />
+              {formErrors.overall_rating && <p className="text-red-500 text-xs">{formErrors.overall_rating}</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              className="bg-blue-800/50 border-blue-700 text-white hover:bg-blue-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              onClick={handleUpdatePlayer}
+              className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900"
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-blue-900 border-blue-800 text-white">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {playerToDelete?.name}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              className="bg-blue-800/50 border-blue-700 text-white hover:bg-blue-700"
+            >
+              Cancel
+            </Button>
+            <Button onClick={confirmDeletePlayer} className="bg-red-700 hover:bg-red-800">
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
