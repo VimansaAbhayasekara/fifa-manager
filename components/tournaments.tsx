@@ -10,7 +10,7 @@ const tournaments = [
   {
     id: 1,
     name: "Champions League",
-    image: "/images/champions-league.jpg",
+    image: "/images/cover3.jpg",
     teams: 32,
     startDate: "September 2023",
     endDate: "May 2024",
@@ -19,7 +19,7 @@ const tournaments = [
   {
     id: 2,
     name: "Premier League",
-    image: "/images/premier-league.jpg",
+    image: "/images/cover3.jpg",
     teams: 20,
     startDate: "August 2023",
     endDate: "May 2024",
@@ -28,7 +28,7 @@ const tournaments = [
   {
     id: 3,
     name: "La Liga",
-    image: "/images/la-liga.jpg",
+    image: "/images/cover3.jpg",
     teams: 20,
     startDate: "August 2023",
     endDate: "May 2024",
@@ -37,7 +37,7 @@ const tournaments = [
   {
     id: 4,
     name: "Bundesliga",
-    image: "/images/bundesliga.jpg",
+    image: "/images/cover3.jpg",
     teams: 18,
     startDate: "August 2023",
     endDate: "May 2024",

@@ -19,13 +19,23 @@ export function HomeMenu() {
 
   const featuredItems = [
     {
+      id: "tournaments",
+      title: "NEXT FEATURE",
+      subtitle: "EL-CLASSICO",
+      icon: Star,
+      path: "/player-management",
+      color: "from-purple-600 to-purple-800",
+      image: "/images/im1.jpeg",
+      size: "large"
+    },
+    {
       id: "auction",
       title: "AUCTION ASSISTANT",
       subtitle: "Find the best player combinations for your budget",
       icon: Users,
       path: "/auction-assistant",
       color: "from-blue-600 to-blue-800",
-      image: "/images/back2.png",
+      image: "/images/back22.jpg",
       size: "large",
     },
     {
@@ -35,24 +45,10 @@ export function HomeMenu() {
       icon: Search,
       path: "/player-gallery",
       color: "from-emerald-600 to-emerald-800",
-      image: "/images/back2.png",
+      image: "/images/im6.jpg",
       size: "large",
     },
-    {
-      id: "career",
-      title: "CONTINUE CAREER",
-      subtitle: "1ST",
-      icon: Star,
-      path: "/player-management",
-      color: "from-purple-600 to-purple-800",
-      image: "/images/back2.png",
-      size: "large",
-      badge: {
-        image: "/images/barcelona.png",
-        text: "Next Match: GETAFE (H)",
-        logo: "/images/back2.png",
-      },
-    },
+   
   ]
 
   const secondaryItems = [
@@ -61,11 +57,11 @@ export function HomeMenu() {
       title: "KICK OFF",
       subtitle: "Play a quick match with your favorite teams",
       path: "/tournaments",
-      image: "/images/back2.png",
+      image: "/images/im4.jpg",
       badge: {
         teams: [
-          { name: "BARCELONA", logo: "/images/back2.png" },
-          { name: "R. MADRID", logo: "/images/back2.png" },
+          { name: "R. MADRID", logo: "/images/logo.png" },
+          { name: "M. CITY", logo: "/images/logo2.png" },
         ],
       },
     },
@@ -81,14 +77,14 @@ export function HomeMenu() {
       title: "SKILL GAMES",
       subtitle: "Test your football knowledge with fun games",
       path: "/skill-games",
-      image: "/images/back2.png",
+      image: "/images/back3.jpg",
     },
   ]
 
   const indicators = Array(featuredItems.length).fill(0)
 
   return (
-    <div className="py-6">
+    <div className="py-1">
       {/* Featured Carousel */}
       <div className="relative mb-8">
         <div className="flex overflow-hidden">
@@ -105,7 +101,7 @@ export function HomeMenu() {
               transition={{ duration: 0.5 }}
             >
               <Link href={item.path}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[280px]">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[400px]">
                   <div className="md:col-span-2 relative overflow-hidden rounded-lg h-full">
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-transparent z-10" />
                     <Image src={item.image || "/back2.png"} alt={item.title} fill className="object-cover" />
@@ -115,32 +111,19 @@ export function HomeMenu() {
                     </div>
                   </div>
                   <div className="relative overflow-hidden rounded-lg h-full bg-blue-900/30 backdrop-blur-sm border border-blue-800/50">
-                    {item.badge && (
-                      <div className="flex flex-col items-center justify-center h-full p-4">
-                        <div className="w-32 h-32 relative mb-4">
+                    
                           <Image
-                            src={item.badge.image || "/back2.png"}
+                            src="/images/pl3.png"
+                            width={2220}
+                            height={4220}
                             alt="Team Logo"
-                            width={128}
-                            height={128}
-                            className="object-contain"
+
                           />
-                        </div>
-                        <p className="text-white text-center mb-2">{item.badge.text}</p>
-                        {item.badge.logo && (
-                          <div className="w-12 h-12 relative">
-                            <Image
-                              src={item.badge.logo || "/placeholder.svg"}
-                              alt="Opponent Logo"
-                              width={48}
-                              height={48}
-                              className="object-contain"
-                            />
-                          </div>
-                        )}
+
+
+
                       </div>
-                    )}
-                  </div>
+
                 </div>
               </Link>
             </motion.div>
@@ -183,10 +166,10 @@ export function HomeMenu() {
             transition={{ duration: 0.5, delay: 0.1 * index }}
           >
             <Link href={item.path}>
-              <div className="relative overflow-hidden rounded-lg h-[180px] border border-blue-800/30 group">
+              <div className="relative overflow-hidden rounded-lg h-[250px] border border-blue-800/30 group">
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 via-blue-900/50 to-transparent z-10" />
                 <Image
-                  src={item.image || "/placeholder.svg"}
+                  src={item.image || "/images/pl1.png"}
                   alt={item.title}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
@@ -236,8 +219,6 @@ export function HomeMenu() {
         ))}
       </div>
 
-      {/* New Feature Badge */}
-      <div className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold">NEW</div>
     </div>
   )
 }
